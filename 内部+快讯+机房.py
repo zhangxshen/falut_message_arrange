@@ -15,6 +15,9 @@ def nb_kx_jf():
         text.columns = ['发送时间', '短信内容']
         text['短信内容'].replace(' ）', ' ', regex=True, inplace=True)
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
+    
+    # 把快讯里的非故障短信内容去除
+    text = text[~ text['短信内容'].str.contains('请审核')]
 
     # 值班长列表
     monitor = ['刘浩', '张海鹏', '冯春雨', '陈俊鑫', '张振斌', '梁国贤', '梅坚', '郭润海', '冯轶颖', '周永德', '王华', '周华造']
