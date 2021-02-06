@@ -14,8 +14,9 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace(' ）', ' ', regex=True, inplace=True)
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
-    # 把带有“请审核”的短信去除，因为他们不是故障或恢复快讯
+    # 把带有“请审核”和“演练”的短信去除，因为他们不是故障或恢复快讯
     text = text[~ text['短信内容'].str.contains('请审核')]
+    text = text[~ text['短信内容'].str.contains('演练')]
 
     # 值班长列表
     monitor = [
