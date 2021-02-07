@@ -329,6 +329,17 @@ def nb_kx_jf(path_target):
             influence_time = dif_time.total_seconds() / 60
         # 获取业务影响时间
         yw_influence_time = influence_time
+        # 获取故障原因
+        tmp_reason = re.search(r'故?障?发?生?原因.*处理情况', hf_message)
+        tmp_jf_reason = re.search(r'停电原因.*停电期间', hf_message)
+        if tmp_reason is not None:
+            reason = tmp_reason.group()[5:-5]
+        else:
+            reason = ''
+        if tmp_jf_reason is not None:
+            jf_reason = tmp_jf_reason.group()[5:-5]
+        else:
+            jf_reason = ''
         # 如果有投诉则获取投诉量，如果没有获取到则投诉量为0
         match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', message)
         if match1:
@@ -506,6 +517,7 @@ def nb_kx_jf(path_target):
                                           '故障处理时长': influence_time,
                                           '维护单位（统计主动监控）': unit,
                                           '是否有告警': '是',
+                                          '故障原因': reason,
                                           '是否省监控主动发现': '是',
                                           '网管告警缺漏的原因': '无',
                                           '业务影响历时': yw_influence_time,
@@ -533,6 +545,7 @@ def nb_kx_jf(path_target):
                                           '是否有告警': '是',
                                           '是否省监控主动发现': '是',
                                           '网管告警缺漏的原因': '无',
+                                          '故障原因分析': jf_reason,
                                           '故障原因分类': '动环原因',
                                           '故障原因细分': '其他原因',
                                           '设备厂家': "其他",
