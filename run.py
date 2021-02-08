@@ -241,60 +241,94 @@ def nb_kx_jf(path_target):
             '是否网管网存在问题'
             '故障通报短信'])
 
-    # 恢复快讯
-    hf = pd.DataFrame(columns=['恢复短信内容', '标题'])
+    # 把恢复快讯、阶段快讯、后评估快讯和故障快讯按标题匹配在一块
+    hf = pd.DataFrame(columns=['恢复短信内容', '标题', '发送时间'])
+    jd = pd.DataFrame(columns=['阶段短信内容', '标题'])
+    hpg = pd.DataFrame(columns=['后评估短信内容', '标题'])
 
-    # 为了把故障快讯和恢复快讯关联起来，这里分别提取它们的标题然后匹配
-    # 定义一个获取故障快讯标题的函数
     def get_kx(kx_df):
         tmp_kx_title = re.search(r'【.*】', kx_df)
         if "【新" in tmp_kx_title.group():
-            kx_title = tmp_kx_title.group().split('|')[3].replace(
-                '】', '').replace(
-                '故障', '').replace(
-                '事件', '')
+            kx_title = tmp_kx_title.group().split('|')[3].replace('】', '').replace('故障', '').replace('事件', '')
         else:
-            kx_title = tmp_kx_title.group().split('|')[1].replace(
-                '】', '').replace(
-                '故障', '').replace(
-                '事件', '')
+            kx_title = tmp_kx_title.group().split('|')[1].replace('】', '').replace('故障', '').replace('事件', '')
         return kx_title
 
-    # 定义一个获取恢复快讯标题的函数
     def get_hf(hf_df):
         tmp_hf_title = re.search(r'【.*】', hf_df)
         if "【销" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[3].replace('】', '')
         else:
-            hf_title = tmp_hf_title.group().split('|')[1].replace(
-                '已恢复】', '').replace('事件', '').split('（')[0]
+            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
         return hf_title
 
-    # 把快讯里面的恢复快讯先提取出来，和故障快讯进行匹配
+    def get_jd(hf_df):
+        tmp_jd_title = re.search(r'【.*】', hf_df)
+        jd_title = tmp_jd_title.group().split('|')[3].replace('】', '')
+        return jd_title
+
+    def get_hpg(hf_df):
+        tmp_hpg_title = re.search(r'【.*】', hf_df)
+        hpg_title = tmp_hpg_title.group().split('|')[3].replace('】', '')
+        return hpg_title
+
     for j in text.itertuples():
         message = getattr(j, '短信内容')
+        tmp_time = getattr(j, '发送时间')
         if '已恢复' in message or '【销' in message:
-            hf = hf.append({'恢复短信内容': message}, ignore_index=True)
+            hf = hf.append({'恢复短信内容': message,
+                            '发送时间': tmp_time, }, ignore_index=True)
+        elif '【阶段' in message:
+            jd = jd.append({'阶段短信内容': message}, ignore_index=True)
+        elif '【后评估' in message:
+            hpg = hpg.append({'后评估短信内容': message}, ignore_index=True)
 
     hf['标题'] = hf['恢复短信内容'].apply(get_hf)
+    jd['标题'] = jd['阶段短信内容'].apply(get_jd)
+    hpg['标题'] = hpg['后评估短信内容'].apply(get_hpg)
     text['标题'] = text['短信内容'].apply(get_kx)
 
-    # 用merge进行按标题匹配，匹配完把标题列去掉
     new_text = pd.merge(text, hf,
                         how='inner',
                         left_on='标题',
                         right_on='标题')
+
+    new_text = pd.merge(new_text, jd,
+                        how='left',
+                        left_on='标题',
+                        right_on='标题')
+
+    new_text = pd.merge(new_text, hpg,
+                        how='left',
+                        left_on='标题',
+                        right_on='标题')
+
+    # 针对不同时间同一光缆段短信可能错误匹配问题，根据短信发送时间来删除不正确的匹配
+    i = 0
+    for j in new_text.itertuples():
+        message = getattr(j, '短信内容')
+        x_time = getattr(j, '发送时间_x')
+        y_time = getattr(j, '发送时间_y')
+        time_1_struct = datetime.strptime(x_time, "%Y-%m-%d %H:%M:%S")
+        time_2_struct = datetime.strptime(y_time, "%Y-%m-%d %H:%M:%S")
+        a = time_1_struct - time_2_struct
+        if "主用光缆中断" in message and abs(a.total_seconds()) > 25000:
+            new_text = new_text.drop(i)
+        i += 1
+
     new_text = new_text.drop('标题', axis=1)
 
     for j in new_text.itertuples():
         message = getattr(j, '短信内容')  # 获取快讯内容
         hf_message = getattr(j, '恢复短信内容')  # 获取恢复快讯内容
         # 如果快讯是突发事件、阶段进展或者其他类型的快讯直接跳过
-        if '已恢复' in message or '突发事件' in message or '家宽' in message \
+        if '已恢复' in message or '突发事件' in message \
                 or '请审核' in message or '阶段进展' in message or '【销' in message:
             continue
+        if '家宽' in message and '内部通报' not in message:
+            continue
         # 获取快讯发送时间
-        send_time = getattr(j, '发送时间')
+        send_time = getattr(j, '发送时间_x')
         # 用正则获取快讯标题
         tmp_title = re.search(r'【.*】', message)
         title = tmp_title.group()
@@ -316,14 +350,18 @@ def nb_kx_jf(path_target):
         day = str(fault_time.day)
         # 获取恢复时间
         hf_match = re.compile(r'\d{1,2}:\d{2}')
-        hf_time = year + '-' + month + '-' + day + \
-            ' ' + hf_match.findall(hf_message)[-1]
+        hf_time = year + '-' + month + '-' + day + ' ' + hf_match.findall(hf_message)[-1]
         hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
         dif_time = hf_time - fault_time
-        influence_time = dif_time.total_seconds() / 60
+        influence_time = dif_time.total_seconds()/60
+        # 针对故障时间较长的故障，恢复时间需要另外判断
+        hf_send_time = getattr(j, '发送时间_y')
+        hf_send_time = datetime.strptime(hf_send_time, '%Y-%m-%d %H:%M:%S')
+        hf_year = str(hf_send_time.year)
+        hf_month = str(hf_send_time.month)
+        hf_day = str(hf_send_time.day)
         if influence_time < 0:
-            hf_time = year + '-' + month + '-' + \
-                str(fault_time.day + 1) + ' ' + hf_match.findall(hf_message)[-1]
+            hf_time = hf_year + '-' + hf_month + '-' + hf_day + ' ' + hf_match.findall(hf_message)[-1]
             hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
             dif_time = hf_time - fault_time
             influence_time = dif_time.total_seconds() / 60
@@ -340,6 +378,12 @@ def nb_kx_jf(path_target):
             jf_reason = tmp_jf_reason.group()[5:-5]
         else:
             jf_reason = ''
+        if "停电" in hf_message and "重点管控" not in hf_message:
+            tmp_jl_reason = re.search(r'原因.*处理情况', hf_message)
+            if tmp_jl_reason is not None:
+                jl_reason = tmp_jl_reason.group()[3:-5]
+        if "计划内" in hf_message:
+            jl_reason = "供电局计划内停电"
         # 如果有投诉则获取投诉量，如果没有获取到则投诉量为0
         match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', message)
         if match1:
