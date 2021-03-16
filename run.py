@@ -16,10 +16,10 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
     # 将非故障快讯单独保存
-    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班')]
+    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件')]
 
     # 去除非故障快讯
-    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班')]
+    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件')]
 
     # 值班长列表
     monitor = ['刘浩', '张海鹏', '冯春雨', '陈俊鑫', '张振斌', '梁国贤', '梅坚', '郭润海', '冯轶颖', '周永德', '王华', '周华造']
