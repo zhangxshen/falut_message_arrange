@@ -15,11 +15,11 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace(' ）', ' ', regex=True, inplace=True)
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
-    text = text[~ text['短信内容'].str.contains('请审核')]
-    text = text[~ text['短信内容'].str.contains('互联互通')]
-    text = text[~ text['短信内容'].str.contains('】测试')]
-    text = text[~ text['短信内容'].str.contains('演练')]
-    text = text[~ text['短信内容'].str.contains('领导值班')]
+    # 将非故障快讯单独保存
+    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班')]
+
+    # 去除非故障快讯
+    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班')]
 
     # 值班长列表
     monitor = ['刘浩', '张海鹏', '冯春雨', '陈俊鑫', '张振斌', '梁国贤', '梅坚', '郭润海', '冯轶颖', '周永德', '王华', '周华造']
@@ -388,11 +388,11 @@ def nb_kx_jf(path_target):
     jf_result['序号'] = range(1, len(jf_result)+1)
     guankong_result['序号'] = range(1, len(guankong_result)+1)
 
-
     writer = pd.ExcelWriter('故障信息整理.xlsx')
     nb_result.to_excel(writer, "升级一般故障", index=None)
     kx_result.to_excel(writer, "故障快讯", index=None)
     jf_result.to_excel(writer, "机楼和汇聚机房停电快讯", index=None)
     guankong_result.to_excel(writer, "管控类快讯", index=None)
+    other_text.to_excel(writer, "非故障快讯", index=None)
     writer.save()
     print('自动整理已完成！')
