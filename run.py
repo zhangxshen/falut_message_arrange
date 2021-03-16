@@ -88,6 +88,8 @@ def nb_kx_jf(path_target):
             hf_title = tmp_hf_title.group().split('|')[3].replace('】', '')
         elif "期）" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
+        elif "重点管控" in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
         else:
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '').split('（')[0]
         return hf_title
@@ -309,7 +311,8 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if "【快讯" in title and "停电" not in title and "数据中心" not in title:
+        if "【快讯" in title and "停电" not in title and "数据中心" not in title \
+                and "异常事件管控" not in title:
             kx_result = kx_result.append({'月份': month,
                                           '负责单位': city + '分公司',
                                           '网络类型': net_type,
