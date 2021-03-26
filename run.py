@@ -172,7 +172,8 @@ def nb_kx_jf(path_target):
             # 获取业务影响时间
         yw_influence_time = influence_time
         # 如果有投诉则获取投诉量，如果没有获取到则投诉量为0
-        match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', message)
+        if hf_message:
+            match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', str(hf_message))
         if match1:
             match1 = re.search(r'\d{1,4}', match1.group())
             complaint = match1.group()
@@ -336,7 +337,7 @@ def nb_kx_jf(path_target):
                                          ignore_index=True)
 
         if "【快讯" in title and "停电" not in title and "数据中心" not in title \
-                and "异常事件管控" not in title:
+                and "异常事件管控" not in title and "家宽" not in title:
             kx_result = kx_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
@@ -395,7 +396,7 @@ def nb_kx_jf(path_target):
                                                       '所属专业': major,
                                                       '设备类型': device_type,
                                                       '影响业务种类': business,
-                                                      '维护单位（统计主动监控）': None,
+                                                      '投诉用户数': complaint,
                                                       '故障标题': gz_title,
                                                       '故障发生时间': fault_time,
                                                       '故障销除时间': hf_time,
@@ -423,4 +424,3 @@ def nb_kx_jf(path_target):
     other_text.to_excel(writer, "非故障快讯", index=None)
     writer.save()
     print('自动整理已完成！')
-
