@@ -127,7 +127,8 @@ def nb_kx_jf(path_target):
         hf_message = getattr(j, '恢复短信内容')  # 获取恢复快讯内容
         jd_message = getattr(j, '阶段短信内容')  # 获取恢复快讯内容
         # 如果快讯是突发事件、阶段进展或者其他类型的快讯直接跳过
-        if '已恢复' in message or '阶段' in message or '【销' in message:
+        if '已恢复' in message or '阶段' in message or '【销' in message \
+                or '后评估' in message:
             continue
         if pd.isnull(hf_message):
             recover = '否'
@@ -146,8 +147,10 @@ def nb_kx_jf(path_target):
                 tmp_city.append(c)
         if len(tmp_city) == 1:
             city = tmp_city[0]
-        else:
+        elif len(tmp_city) == 2:
             city = tmp_city[0] + '、' + tmp_city[1]
+        else:
+            city = ''
         # 获取故障时间
         match = re.search(r'\d{4}/\d{1,2}/\d{1,2} \d{1,2}:\d{2}', message)
         fault_time = datetime.strptime(match.group(), '%Y/%m/%d %H:%M')
