@@ -403,7 +403,7 @@ def nb_kx_jf(path_target):
                                                       '故障标题': gz_title,
                                                       '故障发生时间': fault_time,
                                                       '故障销除时间': hf_time,
-                                                      '故障处理时长': fault_time - hf_time,
+                                                      '故障处理时长': influence_time,
                                                       '业务影响历时': None,
                                                       '故障发生地市': city,
                                                       '故障影响地市': city,
