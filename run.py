@@ -91,6 +91,8 @@ def nb_kx_jf(path_target):
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
         elif "重点管控" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
+        elif "国际" in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '')
         else:
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '').split('（')[0]
         return hf_title
@@ -194,7 +196,7 @@ def nb_kx_jf(path_target):
             tmp_jl_reason = re.search(r'原因.*处理情况', str(hf_message))
             if tmp_jl_reason is not None:
                 jl_reason = tmp_jl_reason.group()[3:-5]
-        if "计划内" in str(hf_message):
+        elif "计划内" in str(hf_message):
             jl_reason = "供电局计划内停电"
         else:
             jl_reason = ""
