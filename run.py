@@ -174,6 +174,30 @@ def nb_kx_jf(path_target):
             influence_time = None
             # 获取业务影响时间
         yw_influence_time = influence_time
+        # 获取故障原因
+        tmp_reason = re.search(r'故?障?发?生?原因.*处理情况', str(hf_message))
+        tmp_jf_reason = re.search(r'停电原因.*停电期间', str(hf_message))
+        tmp_jf_reason2 = re.search(r'停电原因.*停电后', str(message))
+        if tmp_reason is not None:
+            reason = tmp_reason.group()[5:-5]
+        else:
+            reason = ''
+        if tmp_jf_reason is not None:
+            jf_reason = tmp_jf_reason.group()[5:-5]
+        else:
+            jf_reason = ''
+        if tmp_jf_reason2 is not None:
+            jf_reason2 = tmp_jf_reason2.group()[5:-4]
+        else:
+            jf_reason2 = ''
+        if "停电" in str(hf_message) and "重点管控" not in str(hf_message):
+            tmp_jl_reason = re.search(r'原因.*处理情况', str(hf_message))
+            if tmp_jl_reason is not None:
+                jl_reason = tmp_jl_reason.group()[3:-5]
+        if "计划内" in str(hf_message):
+            jl_reason = "供电局计划内停电"
+        else:
+            jl_reason = ""
         # 如果有投诉则获取投诉量，如果没有获取到则投诉量为0
         if hf_message:
             match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', str(hf_message))
@@ -340,7 +364,7 @@ def nb_kx_jf(path_target):
                                          ignore_index=True)
 
         if "【快讯" in title and "停电" not in title and "数据中心" not in title \
-                and "异常事件管控" not in title and "家宽" not in title:
+                and "异常事件管控" not in title:
             kx_result = kx_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
@@ -354,6 +378,7 @@ def nb_kx_jf(path_target):
                                           '故障发生时间': fault_time,
                                           '故障销除时间': hf_time,
                                           '故障处理时长': influence_time,
+                                          '故障原因': reason,
                                           '维护单位（统计主动监控）': unit,
                                           '是否有告警': '是',
                                           '是否省监控主动发现': '是',
@@ -384,6 +409,7 @@ def nb_kx_jf(path_target):
                                           '是否有告警': '是',
                                           '是否省监控主动发现': '是',
                                           '网管告警缺漏的原因': '无',
+                                          '故障原因分析': jf_reason + jl_reason + jf_reason2,
                                           '故障原因分类': '动环原因',
                                           '故障原因细分': '其他原因',
                                           '设备厂家': "其他",
