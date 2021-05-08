@@ -16,10 +16,10 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
     # 将非故障快讯单独保存
-    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震')]
+    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报')]
 
     # 去除非故障快讯
-    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震')]
+    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报')]
 
     # 值班长列表
     monitor = ['刘浩', '张海鹏', '冯春雨', '陈俊鑫', '张振斌', '梁国贤', '梅坚', '郭润海', '冯轶颖', '周永德', '王华', '周华造']
@@ -27,6 +27,15 @@ def nb_kx_jf(path_target):
     # 地市列表
     all_city = ['广州', '深圳', '佛山', '东莞', '汕头', '珠海', '惠州', '中山', '江门', '湛江', '韶关', '河源', '梅州', '汕尾',
                 '阳江', '茂名', '肇庆', '清远', '潮州', '揭阳', '云浮']
+
+    # 严重故障数据
+    yz_result = pd.DataFrame(columns=['序号', '月份', '是否已恢复', '负责单位', '网络类型', '所属专业', '设备类型', '影响业务种类', '维护单位（统计主动监控）',
+                                      '故障标题', '故障发生时间', '故障报障专业室时间', '故障处理过程', '故障销除时间', '故障历时（分钟）', '故障处理历时（分钟）',
+                                      '业务影响历时（分钟）', '故障定位历时（分钟）', '专业定位时长（分钟）', '影响业务范围', '投诉用户数', '故障原因分析',
+                                      '故障原因分类', '故障原因细分', '上报集团', '上报管局', '故障级别', '采用应急容灾情况', '采用应急方案情况', '是否有告警',
+                                      '是否省监控主动发现', '网管告警缺漏的原因', '故障网元', '设备厂家', '故障发生地市', '故障影响地市', '客服预警级别',
+                                      '区域客服信息发布内容', '实际影响用户数', '故障后评估', '故障剖析情况', '值班长', '故障通报短信', '首条故障短信发布时间',
+                                      '故障存在问题（资源、处理过程等）', '问题闭环情况'])
 
     # 内部通报数据
     nb_result = pd.DataFrame(columns=['序号', '月份', '是否已恢复', '负责单位', '网络类型', '所属专业', '设备类型', '影响业务种类', '维护单位（统计主动监控）',
@@ -79,22 +88,36 @@ def nb_kx_jf(path_target):
             kx_title = tmp_kx_title.group().split('|')[3].replace('】', '')
         elif "专线中断" in tmp_kx_title.group() or "故障】" in tmp_kx_title.group():
             kx_title = tmp_kx_title.group().split('|')[1].replace('】', '')
+        elif "【集团衍生】" in tmp_kx_title.group():
+            kx_title = tmp_kx_title.group().split('|')[1].split('】')[0]
         else:
             kx_title = tmp_kx_title.group().split('|')[1].replace('】', '').replace('故障', '').replace('事件', '')
         return kx_title
 
     def get_hf(hf_df):
         tmp_hf_title = re.search(r'【.*】', hf_df)
-        if "【销" in tmp_hf_title.group():
-            hf_title = tmp_hf_title.group().split('|')[3].replace('】', '')
+        if "【销" in tmp_hf_title.group() and "基站" in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[3].replace('】', '').replace('日', '').replace('月', '') \
+                .replace('1', '').replace('3', '').replace('6', '') \
+                .replace('7', '').replace('8', '').replace('9', '').replace('0', '')
+        elif "【销" in tmp_hf_title.group() and "基站" not in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[3].replace('】', '').replace('日', '').replace('月', '') \
+                .replace('1', '').replace('2', '').replace('3', '').replace('4', '').replace('5', '').replace('6', '') \
+                .replace('7', '').replace('8', '').replace('9', '').replace('0', '')
         elif "期）" in tmp_hf_title.group():
-            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
+            hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
+                .replace('恢复】', '').replace('事件', '')
         elif "重点管控" in tmp_hf_title.group():
-            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '')
+            hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
+                .replace('恢复】', '').replace('事件', '')
         elif "国际" in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
+                .replace('恢复】', '')
+        elif "专线" in tmp_hf_title.group() and "恢复】" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '')
         else:
-            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '').replace('事件', '').split('（')[0]
+            hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
+                .replace('恢复】', '').replace('事件', '').split('（')[0]
         return hf_title
 
     def get_jd(jd_df):
@@ -113,6 +136,7 @@ def nb_kx_jf(path_target):
     hf['标题'] = hf['恢复短信内容'].apply(get_hf)
     text['标题'] = text['短信内容'].apply(get_kx)
     jd['标题'] = jd['阶段短信内容'].apply(get_jd)
+    jd = jd.drop_duplicates(subset=['标题'])
 
     tmp_text = pd.merge(text, hf,
                         how='left',
@@ -142,6 +166,7 @@ def nb_kx_jf(path_target):
         tmp_title = re.search(r'【.*】', message)
         title = tmp_title.group()
         # 获取城市
+        city = ''
         tmp_message = message[-20:-1]
         tmp_city = []
         for c in all_city:
@@ -152,7 +177,10 @@ def nb_kx_jf(path_target):
         elif len(tmp_city) == 2:
             city = tmp_city[0] + '、' + tmp_city[1]
         else:
-            city = ''
+            # city = ''
+            for c in all_city:
+                if c in title:
+                    city = c
         # 获取故障时间
         match = re.search(r'\d{4}/\d{1,2}/\d{1,2} \d{1,2}:\d{2}', message)
         fault_time = datetime.strptime(match.group(), '%Y/%m/%d %H:%M')
@@ -209,8 +237,10 @@ def nb_kx_jf(path_target):
         else:
             complaint = 0
         # 使用"|"作分隔符对标题进行分割，因为内部通报格式和快讯不同，所以分别判断
-        if "内部通报" in title:
+        if "内部通报" in title or "严重故障" in title:
             a = title.split('|')[3].replace('】', '')
+        elif "【集团衍生】" in title:
+            a = title.split('|')[1].split('】')[0]
         else:
             a = title.split('|')[1].replace('】', '')
         gz_title = (year + '年' + month + '月' + day + '日' + a).replace('事件', '')
@@ -337,6 +367,35 @@ def nb_kx_jf(path_target):
         if business == '不影响业务':
             yw_influence_time = 0
 
+        if "严重故障" in title:
+            yz_result = yz_result.append({'月份': month,
+                                          '是否已恢复': recover,
+                                          '负责单位': city + '分公司',
+                                          '网络类型': net_type,
+                                          '所属专业': major,
+                                          '设备类型': device_type,
+                                          '影响业务种类': business,
+                                          '维护单位（统计主动监控）': unit,
+                                          '故障标题': gz_title,
+                                          '故障发生时间': fault_time,
+                                          '故障销除时间': hf_time,
+                                          '故障历时（分钟）': influence_time,
+                                          '故障处理历时（分钟）': influence_time,
+                                          '投诉用户数': complaint,
+                                          '故障处理过程': message + '\n' + str(jd_message) + '\n' + str(hf_message),
+                                          '故障级别': '严重故障',
+                                          '是否有告警': '是',
+                                          '是否省监控主动发现': '是',
+                                          '网管告警缺漏的原因': '无',
+                                          '故障发生地市': city,
+                                          '故障影响地市': city,
+                                          '上报集团': '否',
+                                          '上报管局': '否',
+                                          '采用应急容灾情况': '否',
+                                          '值班长': lead,
+                                          '首条故障短信发布时间': send_time},
+                                         ignore_index=True)
+
         if "内部通报" in title:
             nb_result = nb_result.append({'月份': month,
                                           '是否已恢复': recover,
@@ -352,7 +411,7 @@ def nb_kx_jf(path_target):
                                           '故障处理历时（分钟）': influence_time,
                                           '投诉用户数': complaint,
                                           '故障处理过程': message + '\n' + str(jd_message) + '\n' + str(hf_message),
-                                          '故障级别': '升级的一般快讯',
+                                          '故障级别': '升级的一般故障',
                                           '是否有告警': '是',
                                           '是否省监控主动发现': '是',
                                           '网管告警缺漏的原因': '无',
@@ -392,7 +451,7 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if "停电" in title or "数据中心" in title:
+        if ("停电" in title or "数据中心" in title) and "严重故障" not in title and "恢复" not in title:
             jf_result = jf_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
@@ -442,12 +501,20 @@ def nb_kx_jf(path_target):
                                                       '值班长': lead,
                                                       '首条故障短信发布时间': send_time}, ignore_index=True)
 
+    yz_result = yz_result.drop_duplicates(subset=['故障标题'])
+    nb_result = nb_result.drop_duplicates(subset=['故障标题'])
+    kx_result = kx_result.drop_duplicates(subset=['故障标题'])
+    jf_result = jf_result.drop_duplicates(subset=['故障标题'])
+    guankong_result = guankong_result.drop_duplicates(subset=['故障标题'])
+
+    yz_result['序号'] = range(1, len(yz_result) + 1)
     nb_result['序号'] = range(1, len(nb_result) + 1)
     kx_result['序号'] = range(1, len(kx_result) + 1)
     jf_result['序号'] = range(1, len(jf_result) + 1)
     guankong_result['序号'] = range(1, len(guankong_result) + 1)
 
     writer = pd.ExcelWriter('故障信息整理.xlsx')
+    yz_result.to_excel(writer, "严重故障", index=None)
     nb_result.to_excel(writer, "升级一般故障", index=None)
     kx_result.to_excel(writer, "故障快讯", index=None)
     jf_result.to_excel(writer, "机楼和汇聚机房停电快讯", index=None)
