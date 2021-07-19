@@ -16,7 +16,7 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
     # 将非故障快讯单独保存
-    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报')]
+    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报|台风')]
 
     # 去除非故障快讯
     text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报')]
@@ -177,12 +177,11 @@ def nb_kx_jf(path_target):
         elif len(tmp_city) == 2:
             city = tmp_city[0] + '、' + tmp_city[1]
         else:
-            # city = ''
             for c in all_city:
                 if c in title:
                     city = c
         # 获取故障时间
-        match = re.search(r'\d{4}/\d{1,2}/\d{1,2} \d{1,2}:\d{2}', message)
+        match = re.search(r'\d{4}/\d{1,2}/\d{1,2}\s*\d{1,2}:\d{2}', message)
         fault_time = datetime.strptime(match.group(), '%Y/%m/%d %H:%M')
         year = str(fault_time.year)
         month = str(fault_time.month)
@@ -284,7 +283,7 @@ def nb_kx_jf(path_target):
             major = '无线4G'
             device_type = 'ENODEB'
             business = '数据业务-4G'
-        elif "AAA专线" in title or "3A专线" in title:
+        elif "AAA专线" in title or "3A专线" in title or "白名单" in title:
             net_type = '传输网'
             major = '本地传输'
             device_type = '本地光缆'
@@ -396,7 +395,7 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if "内部通报" in title:
+        if "升级的一般故障" in title or "内部通报" in title:
             nb_result = nb_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
