@@ -204,22 +204,33 @@ def nb_kx_jf(path_target):
             # 获取业务影响时间
         yw_influence_time = influence_time
         # 获取故障原因
-        tmp_reason = re.search(r'故?障?发?生?原因.*处理情况', str(hf_message))
-        tmp_jf_reason = re.search(r'停电原因.*停电期间', str(hf_message))
-        tmp_jf_reason2 = re.search(r'停电原因.*停电后', str(message))
+        tmp_reason = re.search(r'故?障?发?生?原因.*?处理', str(hf_message))
+        tmp_jf_reason = re.search(r'停电原因.*?。', str(message))
+        tmp_jf_reason2 = re.search(r'停电原因.*?。', str(hf_message))
+        jl_reason = ''
+        jf_reason = ''
+        jf_reason2 = ''
         if tmp_reason is not None:
-            reason = tmp_reason.group()[5:-5]
+            reason = tmp_reason.group()[5:-3]
         else:
             reason = ''
+        # 机房故障原因部分
         if tmp_jf_reason is not None:
-            jf_reason = tmp_jf_reason.group()[5:-5]
-        else:
+            jf_reason = tmp_jf_reason.group()[5:-1]
+            if '，' in jf_reason:
+                jf_reason = re.search(r'.*?，', str(jf_reason))
+                jf_reason = jf_reason.group()[:-1]
+            if '待确' in tmp_jf_reason.group():
+                jf_reason = ''
+        if tmp_jf_reason2 is not None and tmp_jf_reason != tmp_jf_reason2:
+            jf_reason2 = tmp_jf_reason2.group()[5:-1]
+            if '，' in jf_reason2:
+                jf_reason2 = re.search(r'.*?，', str(jf_reason2))
+                jf_reason2 = jf_reason2.group()[:-1]
             jf_reason = ''
-        if tmp_jf_reason2 is not None:
-            jf_reason2 = tmp_jf_reason2.group()[5:-4]
-        else:
+        if tmp_jf_reason == tmp_jf_reason2:
             jf_reason2 = ''
-        if "停电" in str(hf_message) and "重点管控" not in str(hf_message):
+        if "停电" in str(message) and "重点管控" not in str(message):
             tmp_jl_reason = re.search(r'原因.*处理情况', str(hf_message))
             if tmp_jl_reason is not None:
                 jl_reason = tmp_jl_reason.group()[3:-5]
@@ -227,6 +238,9 @@ def nb_kx_jf(path_target):
             jl_reason = "供电局计划内停电"
         else:
             jl_reason = ""
+        if jl_reason == jf_reason2:
+            jl_reason = ''
+
         # 如果有投诉则获取投诉量，如果没有获取到则投诉量为0
         if hf_message:
             match1 = re.search(r'投诉总?量?累?计?共?\d{1,4}宗', str(hf_message))
@@ -236,7 +250,7 @@ def nb_kx_jf(path_target):
         else:
             complaint = 0
         # 使用"|"作分隔符对标题进行分割，因为内部通报格式和快讯不同，所以分别判断
-        if "内部通报" in title or "严重故障" in title:
+        if "内部通报" in title or "严重故障" in title or "升级的一般故障" in title:
             a = title.split('|')[3].replace('】', '')
         elif "【集团衍生】" in title:
             a = title.split('|')[1].split('】')[0]
