@@ -149,9 +149,6 @@ def nb_kx_jf(path_target):
     jd['标题'] = jd['阶段短信内容'].apply(get_jd)
     jd = jd.drop_duplicates(subset=['标题'])
 
-    text.to_excel(r'C:\Users\Administrator\Desktop\text.xlsx')
-    hf.to_excel(r'C:\Users\Administrator\Desktop\hf.xlsx')
-
     tmp_text = pd.merge(text, hf,
                         how='left',
                         left_on='标题',
@@ -164,9 +161,7 @@ def nb_kx_jf(path_target):
 
     for j in new_text.itertuples():
         message = getattr(j, '短信内容')  # 获取快讯内容
-        print(message)
         hf_message = getattr(j, '恢复短信内容')  # 获取恢复快讯内容
-        print(hf_message)
         jd_message = getattr(j, '阶段短信内容')  # 获取恢复快讯内容
         # 如果快讯是突发事件、阶段进展或者其他类型的快讯直接跳过
         if '已恢复' in message or '阶段' in message or '【销' in message \
@@ -570,7 +565,7 @@ def nb_kx_jf(path_target):
     jf_result['序号'] = range(1, len(jf_result) + 1)
     guankong_result['序号'] = range(1, len(guankong_result) + 1)
 
-    writer = pd.ExcelWriter(r'C:\Users\Administrator\Desktop\故障信息整理.xlsx')
+    writer = pd.ExcelWriter('故障信息整理.xlsx')
     yz_result.to_excel(writer, "严重故障", index=None)
     nb_result.to_excel(writer, "升级一般故障", index=None)
     kx_result.to_excel(writer, "故障快讯", index=None)
