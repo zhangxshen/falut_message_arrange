@@ -16,10 +16,16 @@ def nb_kx_jf(path_target):
         text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
     # 将非故障快讯单独保存
-    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报|台风')]
+    other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报\
+                                                |集团通知|情况汇报|台风|节电小区|错峰停电应急保障')]
 
     # 去除非故障快讯
-    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报|集团通知|情况汇报|台风')]
+    text = text[~ text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报\
+                                            |集团通知|情况汇报|台风|节电小区|错峰停电应急保障')]
+
+    # 去除有问题的快讯
+    wrong = text[~ text['短信内容'].str.contains('\|')]
+    text = text[text['短信内容'].str.contains('\|')]  # 短信必须带有竖线，否则不合格
 
     # 值班长列表
     monitor = ['刘浩', '张海鹏', '冯春雨', '陈俊鑫', '张振斌', '梁国贤', '梅坚', '郭润海', '冯轶颖', '周永德', '王华', '周华造']
@@ -31,16 +37,16 @@ def nb_kx_jf(path_target):
     # 严重故障数据
     yz_result = pd.DataFrame(columns=['序号', '月份', '是否已恢复', '负责单位', '网络类型', '所属专业', '设备类型', '影响业务种类', '维护单位（统计主动监控）',
                                       '故障标题', '故障发生时间', '故障报障专业室时间', '故障处理过程', '故障销除时间', '故障历时（分钟）', '故障处理历时（分钟）',
-                                      '业务影响历时（分钟）', '故障定位历时（分钟）', '专业定位时长（分钟）', '影响业务范围', '投诉用户数', '故障原因分析',
+                                      '业务影响历时（分钟）', '故障定位历时（分钟）', '专业定位时长（分钟）', '影响业务范围', '投诉用户数', '故障原因', '故障原因分析',
                                       '故障原因分类', '故障原因细分', '上报集团', '上报管局', '故障级别', '采用应急容灾情况', '采用应急方案情况', '是否有告警',
                                       '是否省监控主动发现', '网管告警缺漏的原因', '故障网元', '设备厂家', '故障发生地市', '故障影响地市', '客服预警级别',
                                       '区域客服信息发布内容', '实际影响用户数', '故障后评估', '故障剖析情况', '值班长', '故障通报短信', '首条故障短信发布时间',
                                       '故障存在问题（资源、处理过程等）', '问题闭环情况'])
 
-    # 内部通报数据
+    # 升级的一般故障通报数据
     nb_result = pd.DataFrame(columns=['序号', '月份', '是否已恢复', '负责单位', '网络类型', '所属专业', '设备类型', '影响业务种类', '维护单位（统计主动监控）',
                                       '故障标题', '故障发生时间', '故障报障专业室时间', '故障处理过程', '故障销除时间', '故障历时（分钟）', '故障处理历时（分钟）',
-                                      '业务影响历时（分钟）', '故障定位历时（分钟）', '专业定位时长（分钟）', '影响业务范围', '投诉用户数', '故障原因分析',
+                                      '业务影响历时（分钟）', '故障定位历时（分钟）', '专业定位时长（分钟）', '影响业务范围', '投诉用户数', '故障原因', '故障原因分析',
                                       '故障原因分类', '故障原因细分', '上报集团', '上报管局', '故障级别', '采用应急容灾情况', '采用应急方案情况', '是否有告警',
                                       '是否省监控主动发现', '网管告警缺漏的原因', '故障网元', '设备厂家', '故障发生地市', '故障影响地市', '客服预警级别',
                                       '区域客服信息发布内容', '实际影响用户数', '故障后评估', '故障剖析情况', '值班长', '故障通报短信', '首条故障短信发布时间',
@@ -62,7 +68,7 @@ def nb_kx_jf(path_target):
     # 管控类信息字段
     guankong_result = pd.DataFrame(columns=['序号', '月份', '是否已恢复', '负责单位', '网络类型', '所属专业', '设备类型', '影响业务种类',
                                             '维护单位（统计主动监控）', '故障标题', '故障发生时间', '故障销除时间', '故障处理时长',
-                                            '业务影响历时', '通报信息', '投诉用户数', '故障原因分析', '故障原因分类', '故障原因细分',
+                                            '业务影响历时', '通报信息', '投诉用户数', '故障原因', '故障原因分析', '故障原因分类', '故障原因细分',
                                             '是否有告警', '是否省监控主动发现', '网管告警缺漏的原因', '故障网元', '设备厂家',
                                             '故障发生地市', '故障影响地市', '值班长', '首条故障短信发布时间', '故障存在问题（资源、处理过程等）'
                                             ])
@@ -90,6 +96,8 @@ def nb_kx_jf(path_target):
             kx_title = tmp_kx_title.group().split('|')[1].replace('】', '')
         elif "【集团衍生】" in tmp_kx_title.group():
             kx_title = tmp_kx_title.group().split('|')[1].split('】')[0]
+        elif "单板故障" in tmp_kx_title.group() or "板卡故障" in tmp_kx_title.group():
+            kx_title = tmp_kx_title.group().split('|')[1].replace('】', '')
         else:
             kx_title = tmp_kx_title.group().split('|')[1].replace('】', '').replace('故障', '').replace('事件', '')
         return kx_title
@@ -102,7 +110,8 @@ def nb_kx_jf(path_target):
                 .replace('7', '').replace('8', '').replace('9', '').replace('0', '')
         elif "【销" in tmp_hf_title.group() and "基站" not in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[3].replace('】', '').replace('日', '').replace('月', '') \
-                .replace('1', '').replace('2', '').replace('3', '').replace('4', '').replace('5', '').replace('6', '') \
+                .replace('1', '').replace('2', '').replace('3', '').replace('4', '').replace('5', '').replace('6',
+                                                                                                              '') \
                 .replace('7', '').replace('8', '').replace('9', '').replace('0', '')
         elif "期）" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
@@ -115,9 +124,11 @@ def nb_kx_jf(path_target):
                 .replace('恢复】', '')
         elif "专线" in tmp_hf_title.group() and "恢复】" in tmp_hf_title.group():
             hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '')
+        elif "单板故障" in tmp_hf_title.group() or "板卡故障" in tmp_hf_title.group():
+            hf_title = tmp_hf_title.group().split('|')[1].replace('已恢复】', '')
         else:
             hf_title = tmp_hf_title.group().split('|')[1].replace('故障已恢复】', '').replace('已恢复】', '') \
-                .replace('恢复】', '').replace('事件', '').split('（')[0]
+                .replace('恢复】', '').replace('事件', '')
         return hf_title
 
     def get_jd(jd_df):
@@ -138,6 +149,9 @@ def nb_kx_jf(path_target):
     jd['标题'] = jd['阶段短信内容'].apply(get_jd)
     jd = jd.drop_duplicates(subset=['标题'])
 
+    text.to_excel(r'C:\Users\Administrator\Desktop\text.xlsx')
+    hf.to_excel(r'C:\Users\Administrator\Desktop\hf.xlsx')
+
     tmp_text = pd.merge(text, hf,
                         how='left',
                         left_on='标题',
@@ -150,7 +164,9 @@ def nb_kx_jf(path_target):
 
     for j in new_text.itertuples():
         message = getattr(j, '短信内容')  # 获取快讯内容
+        print(message)
         hf_message = getattr(j, '恢复短信内容')  # 获取恢复快讯内容
+        print(hf_message)
         jd_message = getattr(j, '阶段短信内容')  # 获取恢复快讯内容
         # 如果快讯是突发事件、阶段进展或者其他类型的快讯直接跳过
         if '已恢复' in message or '阶段' in message or '【销' in message \
@@ -182,6 +198,11 @@ def nb_kx_jf(path_target):
                     city = c
         # 获取故障时间
         match = re.search(r'\d{4}/\d{1,2}/\d{1,2}\s*\d{1,2}:\d{2}', message)
+        if match is None:
+            wrong = wrong.append({'发送时间': send_time,
+                                  '短信内容': message, },
+                                 ignore_index=True)
+            continue
         fault_time = datetime.strptime(match.group(), '%Y/%m/%d %H:%M')
         year = str(fault_time.year)
         month = str(fault_time.month)
@@ -194,10 +215,30 @@ def nb_kx_jf(path_target):
             dif_time = hf_time - fault_time
             influence_time = dif_time.total_seconds() / 60
             if influence_time < 0:
-                hf_time = year + '-' + month + '-' + str(fault_time.day + 1) + ' ' + hf_match.findall(hf_message)[-1]
-                hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
-                dif_time = hf_time - fault_time
-                influence_time = dif_time.total_seconds() / 60
+                if day == '30' and month in ['4', '6', '9', '11']:
+                    hf_time = year + '-' + str(fault_time.month + 1) + '-' + '1' + ' ' + \
+                              hf_match.findall(hf_message)[-1]
+                    hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
+                    dif_time = hf_time - fault_time
+                    influence_time = dif_time.total_seconds() / 60
+                elif day == '31' and month in ['1', '3', '5', '7', '8', '10', '12']:
+                    hf_time = year + '-' + str(fault_time.month + 1) + '-' + '1' + ' ' + \
+                              hf_match.findall(hf_message)[-1]
+                    hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
+                    dif_time = hf_time - fault_time
+                    influence_time = dif_time.total_seconds() / 60
+                elif day == '28' and month in ['2']:
+                    hf_time = year + '-' + str(fault_time.month + 1) + '-' + '1' + ' ' + \
+                              hf_match.findall(hf_message)[-1]
+                    hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
+                    dif_time = hf_time - fault_time
+                    influence_time = dif_time.total_seconds() / 60
+                else:
+                    hf_time = year + '-' + month + '-' + str(fault_time.day + 1) + ' ' + \
+                              hf_match.findall(hf_message)[-1]
+                    hf_time = datetime.strptime(hf_time, '%Y-%m-%d %H:%M')
+                    dif_time = hf_time - fault_time
+                    influence_time = dif_time.total_seconds() / 60
         else:
             hf_time = None
             influence_time = None
@@ -280,13 +321,13 @@ def nb_kx_jf(path_target):
             business = '数据业务-5G'
             device_type = ''
             unit = ''
-        elif "4G基站退服超门限" in title or "LTE-RRU退服超门限" in title:
+        elif "4G基站" in title or "LTE-RRU" in title:
             net_type = '无线网'
             major = '无线4G'
             business = '数据业务-4G'
             device_type = ''
             unit = ''
-        elif "2G基站退服超门限" in title or "GSM-RRU退服超门限" in title:
+        elif "2G基站" in title or "GSM-RRU" in title:
             net_type = '无线网'
             major = '无线2G'
             business = '数据业务-2G'
@@ -395,6 +436,7 @@ def nb_kx_jf(path_target):
                                           '故障历时（分钟）': influence_time,
                                           '故障处理历时（分钟）': influence_time,
                                           '投诉用户数': complaint,
+                                          '故障原因': reason,
                                           '故障处理过程': message + '\n' + str(jd_message) + '\n' + str(hf_message),
                                           '故障级别': '严重故障',
                                           '是否有告警': '是',
@@ -423,6 +465,7 @@ def nb_kx_jf(path_target):
                                           '故障历时（分钟）': influence_time,
                                           '故障处理历时（分钟）': influence_time,
                                           '投诉用户数': complaint,
+                                          '故障原因': reason,
                                           '故障处理过程': message + '\n' + str(jd_message) + '\n' + str(hf_message),
                                           '故障级别': '升级的一般故障',
                                           '是否有告警': '是',
@@ -438,7 +481,7 @@ def nb_kx_jf(path_target):
                                          ignore_index=True)
 
         if "【快讯" in title and "停电" not in title and "数据中心" not in title \
-                and "异常事件管控" not in title:
+                and "家宽业务" not in title and "PON" not in title:
             kx_result = kx_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
@@ -464,7 +507,7 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if ("停电" in title or "数据中心" in title) and "严重故障" not in title and "恢复" not in title:
+        if ("停电" in title or "数据中心" in title and "光缆中断" not in title) and "严重故障" not in title and "恢复" not in title:
             jf_result = jf_result.append({'月份': month,
                                           '是否已恢复': recover,
                                           '负责单位': city + '分公司',
@@ -491,7 +534,7 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if "异常事件管控" in title or "家宽" in title:
+        if "异常事件管控" in title or "家宽" in title or "PON" in title:
             guankong_result = guankong_result.append({'月份': month,
                                                       '是否已恢复': recover,
                                                       '负责单位': city + '分公司',
@@ -500,6 +543,7 @@ def nb_kx_jf(path_target):
                                                       '设备类型': device_type,
                                                       '影响业务种类': business,
                                                       '投诉用户数': complaint,
+                                                      '故障原因': reason,
                                                       '故障标题': gz_title,
                                                       '故障发生时间': fault_time,
                                                       '故障销除时间': hf_time,
@@ -526,12 +570,13 @@ def nb_kx_jf(path_target):
     jf_result['序号'] = range(1, len(jf_result) + 1)
     guankong_result['序号'] = range(1, len(guankong_result) + 1)
 
-    writer = pd.ExcelWriter('故障信息整理.xlsx')
+    writer = pd.ExcelWriter(r'C:\Users\Administrator\Desktop\故障信息整理.xlsx')
     yz_result.to_excel(writer, "严重故障", index=None)
     nb_result.to_excel(writer, "升级一般故障", index=None)
     kx_result.to_excel(writer, "故障快讯", index=None)
     jf_result.to_excel(writer, "机楼和汇聚机房停电快讯", index=None)
     guankong_result.to_excel(writer, "管控类快讯", index=None)
     other_text.to_excel(writer, "非故障快讯", index=None)
+    wrong.to_excel(writer, "问题快讯", index=None)
     writer.save()
     print('自动整理已完成！')
