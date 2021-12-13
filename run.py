@@ -8,12 +8,9 @@ def nb_kx_jf(path_target):
 
     # 源数据文件前两行以及后两列为多余数据，且包含某些问号字符，先将源文件进行处理
     text = pd.read_excel(path_target)
-    if text.columns[0] != '发送时间':  # 先判断是否为未处理过的源数据
-        text = text.drop([0, 1])  # 去除前两行数据
-        text = text.drop(['Unnamed: 2', 'Unnamed: 3'], axis=1)  # 去除后两列数据
-        text.columns = ['发送时间', '短信内容']
-        text['短信内容'].replace(' ）', ' ', regex=True, inplace=True)
-        text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
+    text['短信内容'].replace('【网络管理中心】', ' ', regex=True, inplace=True)
+    text['短信内容'].replace(' ）', ' ', regex=True, inplace=True)
+    text['短信内容'].replace('？', ' ', regex=True, inplace=True)  # 把快讯中的问号字符去掉
 
     # 将非故障快讯单独保存
     other_text = text[text['短信内容'].str.contains('请审核|互联互通|】测试|演练|领导值班|突发事件|地震|简报\
@@ -134,7 +131,8 @@ def nb_kx_jf(path_target):
     def get_jd(jd_df):
         tmp_jd_title = re.search(r'【.*】', jd_df)
         if "【阶段" in tmp_jd_title.group():
-            jd_title = tmp_jd_title.group().split('|')[3].replace('】', '')
+            jd_title = tmp_jd_title.group().split('|')[3].replace('【网络管理中心】', '').replace('[网络管理中心]', '')\
+                .replace('】', '')
         return jd_title
 
     for j in text.itertuples():
@@ -351,7 +349,7 @@ def nb_kx_jf(path_target):
             device_type = '动力设备'
             jf_type = '核心机楼'
             business = '不影响业务'
-        elif "OLT" in title and "管控" not in title:
+        elif "OLT" in title or "家宽业务使用异常" in title:
             net_type = '传输网'
             major = '本地传输'
             device_type = 'OLT'
@@ -529,7 +527,7 @@ def nb_kx_jf(path_target):
                                           '首条故障短信发布时间': send_time},
                                          ignore_index=True)
 
-        if "异常事件管控" in title or "家宽" in title or "PON" in title:
+        if ("异常事件管控" in title or "家宽" in title or "PON" in title) and "一般故障" not in title:
             guankong_result = guankong_result.append({'月份': month,
                                                       '是否已恢复': recover,
                                                       '负责单位': city + '分公司',
